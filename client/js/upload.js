@@ -6,6 +6,8 @@
     upload_tip = upload.querySelector(".upload_tip"),
     upload_list = upload.querySelector(".upload_list");
 
+  let _file = null;
+
   // 点击选择文件按钮，触发上传文件 INPUT 框选择文件的行为
   upload_button_select.addEventListener("click", function () {
     upload_inp.click();
@@ -33,15 +35,48 @@
         <span>文件：${file.name}</span>
         <span><em>移除</em></span>
     </li>`;
+
+    _file = file;
   });
 
   // 移除按钮的点击处理
   upload_list.addEventListener("click", function (evt) {
     const target = evt.target;
     if (target.tagName === "EM") {
-      upload_tip.style.display = "block";
-      upload_list.style.display = "none";
-      upload_list.innerHTML = ``;
+      clearHandler();
     }
+  });
+
+  function clearHandler() {
+    upload_tip.style.display = "block";
+    upload_list.style.display = "none";
+    upload_list.innerHTML = ``;
+    _file = null;
+  }
+
+  // 上传文件到服务器
+  upload_button_upload.addEventListener("click", function () {
+    if (!_file) {
+      alert("请先选择要上传的文件~~");
+      return;
+    }
+    // 把文件上传至服务器
+    const data = new FormData();
+    data.append("file", _file);
+    data.append("filename", _file.name);
+    instance
+      .post("/upload_single", data)
+      .then((res) => {
+        if (+res.code === 0) {
+          alert(`文件上传成功~~，请基于 ${res.servicePath} 访问这个资源~~`);
+          clearHandler();
+          return;
+        }
+        return Promise.reject(res.codeText);
+      })
+      .catch((err) => {
+        alert("文件上传失败，请稍后重试");
+        clearHandler();
+      });
   });
 })();
