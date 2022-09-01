@@ -10,6 +10,12 @@
 
   // 点击选择文件按钮，触发上传文件 INPUT 框选择文件的行为
   upload_button_select.addEventListener("click", function () {
+    if (
+      upload_button_select.classList.contains("disable") ||
+      upload_button_select.classList.contains("loading")
+    ) {
+      return;
+    }
     upload_inp.click();
   });
 
@@ -54,8 +60,24 @@
     _file = null;
   }
 
+  function disableHandler(flag) {
+    if (flag) {
+      upload_button_select.classList.add("disable");
+      upload_button_upload.classList.add("loading");
+    } else {
+      upload_button_select.classList.remove("disable");
+      upload_button_upload.classList.remove("loading");
+    }
+  }
+
   // 上传文件到服务器
   upload_button_upload.addEventListener("click", function () {
+    if (
+      upload_button_upload.classList.contains("disable") ||
+      upload_button_upload.classList.contains("loading")
+    ) {
+      return;
+    }
     if (!_file) {
       alert("请先选择要上传的文件~~");
       return;
@@ -64,19 +86,22 @@
     const data = new FormData();
     data.append("file", _file);
     data.append("filename", _file.name);
+    disableHandler(true);
     instance
       .post("/upload_single", data)
       .then((res) => {
         if (+res.code === 0) {
           alert(`文件上传成功~~，请基于 ${res.servicePath} 访问这个资源~~`);
-          clearHandler();
           return;
         }
         return Promise.reject(res.codeText);
       })
       .catch((err) => {
         alert("文件上传失败，请稍后重试");
+      })
+      .finally(() => {
         clearHandler();
+        disableHandler(false);
       });
   });
 })();
