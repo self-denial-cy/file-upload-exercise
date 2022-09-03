@@ -1,3 +1,4 @@
+// 单一文件上传「FORM-DATA」
 (function () {
   const upload = document.querySelector("#upload1"),
     upload_inp = upload.querySelector(".upload_inp"),
@@ -10,10 +11,7 @@
 
   // 点击选择文件按钮，触发上传文件 INPUT 框选择文件的行为
   upload_button_select.addEventListener("click", function () {
-    if (
-      upload_button_select.classList.contains("disable") ||
-      upload_button_select.classList.contains("loading")
-    ) {
+    if (checkIsDisable(upload_button_select)) {
       return;
     }
     upload_inp.click();
@@ -72,10 +70,7 @@
 
   // 上传文件到服务器
   upload_button_upload.addEventListener("click", function () {
-    if (
-      upload_button_upload.classList.contains("disable") ||
-      upload_button_upload.classList.contains("loading")
-    ) {
+    if (checkIsDisable(upload_button_upload)) {
       return;
     }
     if (!_file) {
@@ -103,5 +98,44 @@
         clearHandler();
         disableHandler(false);
       });
+  });
+})();
+
+// 验证元素是否可用
+function checkIsDisable(ele) {
+  const classList = ele.classList
+  return classList.contains('disable') || classList.contains('loading')
+}
+
+// 单一文件上传「BASE64」，只适合图片
+(function () {
+  const upload = document.querySelector("#upload2"),
+    upload_inp = upload.querySelector(".upload_inp"),
+    upload_button_select = upload.querySelector(".upload_button.select"),
+    upload_tip = upload.querySelector(".upload_tip");
+
+  // 点击上传图片按钮，触发上传文件 INPUT 框选择文件的行为
+  upload_button_select.addEventListener("click", function () {
+    if (checkIsDisable(upload_button_select)) {
+      return;
+    }
+    upload_inp.click();
+  });
+
+  // 监听用户选择文件的操作
+  upload_inp.addEventListener("change", function () {
+    // 获取用户选择的文件对象
+    const file = upload_inp.files[0];
+    if (!file) return;
+    // 限制上传文件的格式
+    if (!/(PNG|JPG|JPEG)/i.test(file.type)) {
+      alert("上传的文件只能是 PNG/JPG/JPEG 格式的~~");
+      return;
+    }
+    // 限制文件上传的大小
+    if (file.size > 2 * 1024 * 1024) {
+      alert("上传的文件不能超过2MB~~");
+      return;
+    }
   });
 })();
