@@ -39,6 +39,16 @@ function readAsBuffer(file) {
     })
 }
 
+// 延迟函数
+const delay = function delay(interval) {
+    typeof interval !== "number" ? (interval = 1000) : null;
+    return new Promise((resolve) => {
+        setTimeout(() => {
+            resolve();
+        }, interval);
+    });
+};
+
 // 单一文件上传「FORM-DATA」
 (function () {
     const upload = document.querySelector("#upload1"),
@@ -276,4 +286,53 @@ function readAsBuffer(file) {
             _file = null
         }
     })
-})()
+})();
+
+// 单一文件上传「进度管控」
+(function () {
+    const upload = document.querySelector('#upload4'),
+        upload_inp = upload.querySelector(".upload_inp"),
+        upload_button_select = upload.querySelector(".upload_button.select"),
+        upload_progress = upload.querySelector('.upload_progress'),
+        upload_progress_value = upload_progress.querySelector('.value');
+
+    // 点击上传文件按钮，触发上传文件 INPUT 框选择文件的行为
+    upload_button_select.addEventListener('click', function () {
+        if (checkIsDisable(upload_button_select)) return
+        upload_inp.click()
+    })
+
+    // 监听用户选择文件的操作
+    upload_inp.addEventListener('change', async function () {
+        const file = upload_inp.files[0];
+        if (!file) return;
+        upload_button_select.classList.add('loading')
+        try {
+            const data = new FormData()
+            data.append('file', file)
+            data.append('filename', file.name)
+            const res = await instance.post('/upload_single', data, {
+                // 文件上传中的回调 基于 xhr.upload.onprogress 实现
+                onUploadProgress(evt) {
+                    const {loaded, total} = evt
+                    upload_progress.style.display = 'block'
+                    upload_progress_value.style.width = `${loaded / total * 100}%`
+                }
+            })
+            if (+res.code === 0) {
+                upload_progress_value.style.width = '100%';
+                // transition: width 0.3s; alert 会阻塞浏览器，因此需要 delay，否则 width 没到 100% 就被阻塞了
+                await delay(300)
+                alert(`文件上传成功~~，请基于 ${res.servicePath} 访问这个资源~~`);
+                return
+            }
+            throw res.codeText
+        } catch (err) {
+            alert('很遗憾，文件上传失败，请稍后再试~~')
+        } finally {
+            upload_button_select.classList.remove('loading')
+            upload_progress.style.display = 'none'
+            upload_progress_value.style.width = '0%'
+        }
+    })
+})();
