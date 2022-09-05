@@ -452,3 +452,56 @@ const delay = function delay(interval) {
         }
     })
 })();
+
+// 拖拽上传
+(function () {
+    const upload = document.querySelector('#upload6'),
+        upload_inp = upload.querySelector('.upload_inp'),
+        upload_submit = upload.querySelector('.upload_submit'),
+        upload_mark = upload.querySelector('.upload_mark');
+
+    let isUploading = false;
+
+    upload_submit.addEventListener('click', function () {
+        upload_inp.click();
+    });
+
+    upload_inp.addEventListener('change', function () {
+        const file = upload_inp.files[0];
+        if (!file) return;
+        uploadFile(file);
+    });
+
+    upload.addEventListener('dragover', function (evt) {
+        evt.preventDefault();
+    });
+
+    upload.addEventListener('drop', function (evt) {
+        evt.preventDefault();
+        const file = evt.dataTransfer.files[0];
+        if (!file) return;
+        uploadFile(file);
+    });
+
+    async function uploadFile(file) {
+        if (isUploading) return;
+        isUploading = true;
+        upload_mark.style.display = 'block';
+        try {
+            const data = new FormData();
+            data.append('file', file);
+            data.append('filename', file.name);
+            const res = await instance.post('/upload_single', data);
+            if (+res.code === 0) {
+                alert(`文件上传成功~~，请基于 ${res.servicePath} 访问这个资源~~`);
+                return;
+            }
+            throw res.codeText;
+        } catch (err) {
+            alert("文件上传失败，请稍后重试");
+        } finally {
+            isUploading = false;
+            upload_mark.style.display = 'none';
+        }
+    }
+})();
