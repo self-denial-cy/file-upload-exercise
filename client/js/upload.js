@@ -336,3 +336,119 @@ const delay = function delay(interval) {
         }
     })
 })();
+
+// 多文件上传
+(function () {
+    const upload = document.querySelector("#upload5"),
+        upload_inp = upload.querySelector(".upload_inp"),
+        upload_button_select = upload.querySelector(".upload_button.select"),
+        upload_button_upload = upload.querySelector(".upload_button.upload"),
+        upload_list = upload.querySelector(".upload_list");
+
+    let _files = []
+
+    // 控制按钮状态
+    function disableHandler(flag) {
+        if (flag) {
+            upload_button_select.classList.add("disable");
+            upload_button_upload.classList.add("loading");
+            return;
+        }
+        upload_button_select.classList.remove("disable");
+        upload_button_upload.classList.remove("loading");
+    }
+
+    // 点击选择文件按钮，触发上传文件 INPUT 框选择文件的行为
+    upload_button_select.addEventListener("click", function () {
+        if (checkIsDisable(upload_button_select)) return;
+        upload_inp.click();
+    });
+
+    // 监听用户选择文件的操作
+    upload_inp.addEventListener("change", async function () {
+        _files = Array.from(upload_inp.files);
+        if (!_files.length) return;
+        _files = _files.map(file => {
+            return {
+                file,
+                filename: file.name,
+                key: createKey()
+            }
+        })
+        let htmlStr = '';
+        _files.forEach((item, index) => {
+            htmlStr += `
+            <li key="${item.key}">
+                <span>文件${index + 1}：${item.filename}</span>
+                <span><em>移除</em></span>
+            </li>`;
+        });
+        upload_list.style.display = "block";
+        upload_list.innerHTML = htmlStr;
+    });
+
+    // 生成唯一值
+    function createKey() {
+        const random = Math.random() * new Date();
+        return random.toString(16).replace('.', '');
+    }
+
+    // 事件委托实现移除操作
+    upload_list.addEventListener('click', function (evt) {
+        const target = evt.target;
+        if (target.tagName === 'EM') {
+            const curItem = target.parentNode.parentNode;
+            if (!curItem) return;
+            upload_list.removeChild(curItem);
+            const key = curItem.getAttribute('key');
+            _files = _files.filter(item => item.key !== key)
+            if (_files.length === 0) {
+                upload_list.style.display = 'none';
+            }
+        }
+    });
+
+    // 点击上传到服务器按钮
+    upload_button_upload.addEventListener('click', async function () {
+        if (checkIsDisable(upload_button_upload)) return;
+        if (!_files.length) {
+            alert('请先选择要上传的文件~~');
+            return;
+        }
+        disableHandler(true);
+        const upload_list_lis = Array.from(upload_list.querySelectorAll('li'));
+        _files = _files.map(item => {
+            const data = new FormData();
+            data.append('file', item.file);
+            data.append('filename', item.filename);
+            const curLi = upload_list_lis.find(li => li.getAttribute('key') === item.key);
+            const curSpan = curLi ? curLi.querySelector('span:nth-last-child(1)') : null;
+            return instance.post('/upload_single', data, {
+                onUploadProgress(evt) {
+                    if (curSpan) {
+                        curSpan.innerHTML = `${(evt.loaded / evt.total * 100).toFixed(2)}%`;
+                    }
+                }
+            }).then(res => {
+                if (+res.code === 0) {
+                    if (curSpan) {
+                        curSpan.innerHTML = "100%";
+                    }
+                    return;
+                }
+                return Promise.reject(res.codeText);
+            })
+        });
+        try {
+            await Promise.all(_files)
+            alert('恭喜，所有文件上传成功~~')
+        } catch (err) {
+            alert('很遗憾，上传过程中出现问题，请稍后再试~~')
+        } finally {
+            disableHandler(false);
+            _files = [];
+            upload_list.innerHTML = '';
+            upload_list.style.display = 'none';
+        }
+    })
+})();
