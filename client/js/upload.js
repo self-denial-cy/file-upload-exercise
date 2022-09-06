@@ -505,3 +505,103 @@ const delay = function delay(interval) {
         }
     }
 })();
+
+// 大文件上传（bug wait for fix）
+(function () {
+    const upload = document.querySelector('#upload7'),
+        upload_inp = upload.querySelector('.upload_inp'),
+        upload_button_select = upload.querySelector('.upload_button.select'),
+        upload_progress = upload.querySelector('.upload_progress'),
+        upload_progress_value = upload_progress.querySelector('.value');
+
+    // 点击上传按钮，触发上传文件 INPUT 框选择文件的行为
+    upload_button_select.addEventListener('click', function () {
+        if (checkIsDisable(this)) return;
+        upload_inp.click();
+    });
+
+    // 监听用户选择文件的操作
+    upload_inp.addEventListener('change', async function () {
+        const file = upload_inp.files[0];
+        if (!file) return;
+        upload_button_select.classList.add('loading');
+        upload_progress.style.display = 'block';
+
+        function reset() {
+            upload_button_select.classList.remove('loading');
+            upload_progress.style.display = 'none';
+            upload_progress_value.style.width = '0%';
+        }
+
+        try {
+            // 获取文件的 hash
+            const {hash, suffix} = await readAsBuffer(file);
+            // 获取已经上传的切片信息
+            let already = [];
+            const res = await instance.get('/upload_already', {params: {HASH: hash}});
+            if (+res.code === 0) {
+                already = res.fileList;
+            }
+            // 实现文件切片处理（固定数量 & 固定大小）
+            let max = 1024 * 100, count = Math.ceil(file.size / max);
+            if (count > 100) {
+                count = 100;
+                max = file.size / count;
+            }
+            // 开始处理
+            let index = 0, chunks = [];
+            while (index < count) {
+                chunks.push({
+                    file: file.slice(index * max, (index + 1) * max),
+                    filename: `${hash}_${index + 1}.${suffix}`
+                });
+                index++;
+            }
+
+            index = 0;
+
+            // 上传成功的处理（管控进度条；当所有切片上传成功，发起合并切片请求）
+            async function complete() {
+                index++;
+                upload_progress_value.style.width = `${index / count * 100}%`;
+                if (index < count) return;
+                upload_progress_value.style.width = '100%';
+                const res = await instance.post('/upload_merge', {HASH: hash, count}, {
+                    headers: {
+                        'Content-Type': 'application/x-www-form-urlencoded'
+                    }
+                });
+                if (+res.code === 0) {
+                    alert(`文件上传成功~~，请基于 ${res.servicePath} 访问这个资源~~`);
+                    reset();
+                    return;
+                }
+                throw res.codeText;
+            }
+
+            // 开始上传切片
+            for (const chunk of chunks) {
+                // 已经上传的切片无需再上传了
+                if (already.length && already.includes(chunk.filename)) {
+                    await complete();
+                } else {
+                    const data = new FormData();
+                    data.append('file', chunk.file);
+                    data.append('filename', chunk.filename);
+                    instance.post('/upload_chunk', data).then(res => {
+                        if (+res.code === 0) {
+                            complete();
+                            return;
+                        }
+                        return Promise.reject(res.codeText);
+                    }).catch(err => {
+                        throw err;
+                    });
+                }
+            }
+        } catch (err) {
+            alert('很遗憾，文件上传失败，请稍后再试~~');
+            reset();
+        }
+    });
+})();
