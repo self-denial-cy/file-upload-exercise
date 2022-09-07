@@ -581,6 +581,7 @@ const delay = function delay(interval) {
                         });
                     }
 
+                    const uploadTasks = [];
                     // 开始上传切片
                     for (const chunk of chunks) {
                         // 已经上传的切片无需再上传了
@@ -590,7 +591,7 @@ const delay = function delay(interval) {
                             const data = new FormData();
                             data.append('file', chunk.file);
                             data.append('filename', chunk.filename);
-                            instance.post('/upload_chunk', data).then(res => {
+                            uploadTasks.push(instance.post('/upload_chunk', data).then(res => {
                                 if (+res.code === 0) {
                                     complete();
                                     return;
@@ -598,9 +599,15 @@ const delay = function delay(interval) {
                                 return Promise.reject(res.codeText);
                             }).catch(err => {
                                 // console.log('当前切片上传失败~~');
-                            });
+                                return Promise.reject(err);
+                            }));
                         }
                     }
+
+                    Promise.all(uploadTasks).catch(err => {
+                        alert('文件上传失败，请稍后重试~~');
+                        reset();
+                    });
                     return;
                 }
                 return Promise.reject(res.codeText);
