@@ -2,180 +2,156 @@
   position: relative;
   box-sizing: border-box;
   padding: 10px;
+  border: 1px dashed #ddd;
   width: 400px;
   min-height: 150px;
-  border: 1px dashed #ddd;
 }
-
 .upload_box .upload_inp {
   display: none;
 }
-
 .upload_box .upload_button {
+  overflow: hidden;
   position: relative;
   box-sizing: border-box;
   margin-right: 10px;
   padding: 0 10px;
+  border: none;
   min-width: 80px;
   height: 30px;
+  background-color: #ddd;
+  cursor: pointer;
   line-height: 30px;
   text-align: center;
-  border: none;
-  cursor: pointer;
-  background-color: #ddd;
-  overflow: hidden;
 }
-
-.upload_box .upload_button:after {
+.upload_box .upload_button::after {
   position: absolute;
-  top: 30px;
   left: 0;
+  top: 30px;
   z-index: 999;
-  transition: top 0.1s;
   box-sizing: border-box;
   padding-left: 25px;
   width: 100%;
   height: 100%;
-  content: "loading...";
-  text-align: left;
-  background: url("../images/loading.gif") no-repeat 5px center #eee;
+  background: url('../images/loading.gif') no-repeat 5px center #eee;
   background-size: 15px 15px;
+  text-align: left;
   color: #999;
+  content: 'loading...';
+  transition: top 0.1s;
 }
-
 .upload_box .upload_button.loading {
   cursor: inherit;
 }
-
-.upload_box .upload_button.loading:after {
+.upload_box .upload_button.loading::after {
   top: 0;
 }
-
 .upload_box .upload_button.select {
   background: #409eff;
   color: #fff;
 }
-
 .upload_box .upload_button.upload {
   background: #67c23a;
   color: #fff;
 }
-
 .upload_box .upload_button.disable {
   background: #eee;
-  color: #999;
   cursor: inherit;
+  color: #999;
 }
-
 .upload_box .upload_tip {
   margin-top: 10px;
   line-height: 25px;
-  color: #999;
   font-size: 12px;
+  color: #999;
 }
-
 .upload_box .upload_list,
 .upload_box .upload_abbre,
 .upload_box .upload_progress,
 .upload_box .upload_mark {
   display: none;
 }
-
 .upload_box .upload_list {
   margin-top: 10px;
 }
-
 .upload_box .upload_list li {
   line-height: 25px;
   font-size: 0;
 }
-
 .upload_box .upload_list li span {
   display: inline-block;
+  overflow: hidden;
   margin-right: 10px;
   max-width: 70%;
-  color: #999;
-  font-size: 12px;
   text-overflow: ellipsis;
+  font-size: 12px;
+  color: #999;
   white-space: nowrap;
-  overflow: hidden;
 }
-
 .upload_box .upload_list li span em {
   padding: 0 5px;
-  color: lightcoral;
   cursor: pointer;
   font-style: normal;
+  color: lightcoral;
 }
-
 .upload_box .upload_abbre,
 .upload_box .upload_progress {
   margin-top: 10px;
 }
-
 .upload_box .upload_abbre img {
   display: block;
   width: 100%;
 }
-
 .upload_box .upload_progress {
   position: relative;
   height: 5px;
   background: #eee;
 }
-
 .upload_box .upload_progress .value {
   position: absolute;
-  top: 0;
   left: 0;
+  top: 0;
   z-index: 999;
-  height: 100%;
   width: 0%;
+  height: 100%;
   background: #67c23a;
   transition: width 0.3s;
 }
-
 .upload_box .upload_drag {
-  height: 130px;
   position: relative;
+  height: 130px;
 }
-
 .upload_box .upload_drag .icon,
 .upload_box .upload_drag .text {
   position: absolute;
   left: 50%;
   transform: translate(-50%, -50%);
 }
-
 .upload_box .upload_drag .icon {
   top: 40%;
   width: 80px;
   height: 62px;
-  background: url("../images/upload.png") no-repeat;
+  background: url('../images/upload.png') no-repeat;
   background-size: 100% 100%;
 }
-
 .upload_box .upload_drag .text {
   top: 80%;
   line-height: 25px;
-  color: #999;
   font-size: 12px;
+  color: #999;
 }
-
 .upload_box .upload_drag .text a {
   color: #409eff;
 }
-
 .upload_box .upload_mark {
   position: absolute;
-  top: 0;
   left: 0;
+  top: 0;
   z-index: 999;
   width: 100%;
   height: 100%;
   background: rgba(0, 0, 0, 0.8);
+  line-height: 150px;
+  text-align: center;
   font-size: 12px;
   color: #fff;
-  text-align: center;
-  line-height: 150px;
 }
