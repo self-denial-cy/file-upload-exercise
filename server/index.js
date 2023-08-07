@@ -202,18 +202,18 @@ app.post('/upload_single_base64', async (req, res) => {
 const merge = function (HASH, count) {
   // eslint-disable-next-line no-async-promise-executor
   return new Promise(async (resolve, reject) => {
-    let path = `${uploadDir}/${HASH}`,
+    let _path = path.join(uploadDir, HASH),
       fileList = [],
       suffix,
       isExists;
-    isExists = await exists(path);
+    isExists = await exists(_path);
     if (!isExists) {
       reject('HASH path is not found');
       return;
     }
-    fileList = fs.readdirSync(path);
+    fileList = fs.readdirSync(_path);
     if (fileList.length < count) {
-      reject('the slice has not been uploaded');
+      reject('the slice has not been all uploaded');
       return;
     }
     fileList
@@ -223,12 +223,12 @@ const merge = function (HASH, count) {
       })
       .forEach((item) => {
         !suffix ? (suffix = /\.([0-9a-zA-Z]+)$/.exec(item)[1]) : null;
-        fs.appendFileSync(`${uploadDir}/${HASH}.${suffix}`, fs.readFileSync(`${path}/${item}`));
-        fs.unlinkSync(`${path}/${item}`);
+        fs.appendFileSync(path.join(uploadDir, `${HASH}.${suffix}`), fs.readFileSync(path.join(_path, item))); // 合并切片信息「合并 Buffer 对象」
+        fs.unlinkSync(path.join(_path, item)); // 同步删除
       });
-    fs.rmdirSync(path);
+    fs.rmdirSync(_path); // 同步删除
     resolve({
-      path: `${uploadDir}/${HASH}.${suffix}`,
+      path: path.join(uploadDir, `${HASH}.${suffix}`),
       filename: `${HASH}.${suffix}`
     });
   });
@@ -238,25 +238,25 @@ app.post('/upload_chunk', async (req, res) => {
     let { fields, files } = await multipartyUpload(req);
     let file = (files.file && files.file[0]) || {},
       filename = (fields.filename && fields.filename[0]) || '',
-      path = '',
+      _path = '',
       isExists = false;
     // 创建存放切片的临时目录
-    let [, HASH] = /^([^_]+)_(\d+)/.exec(filename);
-    path = `${uploadDir}/${HASH}`;
-    !fs.existsSync(path) ? fs.mkdirSync(path) : null;
+    let [, HASH] = /^([^_]+)_(\d+)/.exec(filename); // 从文件名中匹配出唯一 hash
+    _path = path.join(uploadDir, HASH);
+    !fs.existsSync(_path) ? fs.mkdirSync(_path) : null;
     // 把切片存储到临时目录中
-    path = `${uploadDir}/${HASH}/${filename}`;
-    isExists = await exists(path);
+    _path = path.join(uploadDir, HASH, filename);
+    isExists = await exists(_path);
     if (isExists) {
       res.send({
         code: 0,
         codeText: 'file exists',
         originalFilename: filename,
-        servicePath: path.replace(__dirname, HOSTNAME)
+        servicePath: pathTransform(_path.replace(uploadDir, HOSTNAME))
       });
       return;
     }
-    writeFile(res, path, file, filename, true);
+    writeFile(res, _path, file, filename, true);
   } catch (err) {
     res.send({
       code: 1,
@@ -267,12 +267,12 @@ app.post('/upload_chunk', async (req, res) => {
 app.post('/upload_merge', async (req, res) => {
   let { HASH, count } = req.body;
   try {
-    let { filename, path } = await merge(HASH, count);
+    let { filename, path: _path } = await merge(HASH, count);
     res.send({
       code: 0,
       codeText: 'merge success',
       originalFilename: filename,
-      servicePath: path.replace(__dirname, HOSTNAME)
+      servicePath: pathTransform(_path.replace(uploadDir, HOSTNAME))
     });
   } catch (err) {
     res.send({
@@ -283,23 +283,24 @@ app.post('/upload_merge', async (req, res) => {
 });
 app.get('/upload_already', async (req, res) => {
   let { HASH } = req.query;
-  let path = `${uploadDir}/${HASH}`,
+  let _path = path.join(uploadDir, HASH),
     fileList = [];
   try {
-    fileList = fs.readdirSync(path);
+    fileList = fs.readdirSync(_path);
     fileList = fileList.sort((a, b) => {
       let reg = /_(\d+)/;
       return reg.exec(a)[1] - reg.exec(b)[1];
     });
     res.send({
       code: 0,
-      codeText: '',
+      codeText: 'already upload',
       fileList: fileList
     });
   } catch (err) {
+    // 若未读取到相关目录，说明从未上传过
     res.send({
       code: 0,
-      codeText: '',
+      codeText: 'already upload',
       fileList: fileList
     });
   }

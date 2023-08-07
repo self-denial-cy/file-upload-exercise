@@ -367,7 +367,7 @@ function delay(interval) {
   // 监听用户选择文件的操作
   upload_inp.addEventListener('change', async function () {
     _files = Array.from(upload_inp.files);
-    if (!_files.length) return;
+    if (!_files || !_files.length) return;
     _files = _files.map((file) => {
       return {
         file,
@@ -541,7 +541,7 @@ function delay(interval) {
         // 获取已经上传的切片信息
         let already = [];
         instance
-          .get('/upload_already', { params: { HASH: hash } })
+          .get('/upload_already', { params: { HASH: hash } }) // 根据文件内容生成的唯一 hash 值获取已经上传的切片信息
           .then((res) => {
             if (+res.code === 0) {
               already = res.fileList;
@@ -552,7 +552,7 @@ function delay(interval) {
                 count = 100;
                 max = file.size / count;
               }
-              // 开始处理
+              // 开始将文件切片处理
               let index = 0,
                 chunks = [];
               while (index < count) {
@@ -562,9 +562,7 @@ function delay(interval) {
                 });
                 index++;
               }
-
               index = 0;
-
               // 上传成功的处理（管控进度条；当所有切片上传成功，发起合并切片请求）
               // eslint-disable-next-line no-inner-declarations
               function complete() {
@@ -595,11 +593,10 @@ function delay(interval) {
                     reset();
                   });
               }
-
               const uploadTasks = [];
               // 开始上传切片
               for (const chunk of chunks) {
-                // 已经上传的切片无需再上传了
+                // 已经上传的切片无需再上传了「断点续传」
                 if (already.length && already.includes(chunk.filename)) {
                   complete();
                 } else {
@@ -607,23 +604,17 @@ function delay(interval) {
                   data.append('file', chunk.file);
                   data.append('filename', chunk.filename);
                   uploadTasks.push(
-                    instance
-                      .post('/upload_chunk', data)
-                      .then((res) => {
-                        if (+res.code === 0) {
-                          complete();
-                          return;
-                        }
-                        return Promise.reject(res.codeText);
-                      })
-                      .catch((err) => {
-                        // console.log('当前切片上传失败~~');
-                        return Promise.reject(err);
-                      })
+                    // 并行上传文件切片
+                    instance.post('/upload_chunk', data).then((res) => {
+                      if (+res.code === 0) {
+                        complete();
+                        return;
+                      }
+                      return Promise.reject(res.codeText);
+                    })
                   );
                 }
               }
-
               Promise.all(uploadTasks).catch((err) => {
                 alert('文件上传失败，请稍后重试~~');
                 reset();
