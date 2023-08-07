@@ -183,14 +183,9 @@ function delay(interval) {
       const base64 = await readAsBASE64(file);
       const res = await instance.post(
         '/upload_single_base64',
+        { file: encodeURIComponent(base64), filename: file.name },
         {
-          file: encodeURIComponent(base64),
-          filename: file.name
-        },
-        {
-          headers: {
-            'Content-Type': 'application/x-www-form-urlencoded'
-          }
+          headers: { 'Content-Type': 'application/x-www-form-urlencoded' }
         }
       );
       if (+res.code === 0) {
@@ -245,11 +240,11 @@ function delay(interval) {
     }
     // 限制文件上传的大小
     if (file.size > 2 * 1024 * 1024) {
-      alert('上传的文件不能超过2MB~~');
+      alert('上传的文件不能超过 2MB~~');
       return;
     }
     _file = file;
-    // 文件预览，将文件转换为 BASE64，赋值给 img
+    // 文件预览，将文件转换为 BASE64，赋值给 img 标签
     try {
       upload_button_select.classList.add('disable');
       const base64 = await readAsBASE64(file);
@@ -257,7 +252,6 @@ function delay(interval) {
       upload_abbre_img.src = base64;
     } catch (err) {
       alert('读取文件失败~~');
-      return;
     } finally {
       upload_button_select.classList.remove('disable');
     }

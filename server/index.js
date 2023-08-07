@@ -63,12 +63,12 @@ const writeFile = function (res, path, file, filename, stream) {
         readStream.pipe(writeStream);
         readStream.on('end', () => {
           resolve();
-          fs.unlinkSync(file.path);
+          fs.unlinkSync(file.path); // 删除临时文件
           res.send({
             code: 0,
             codeText: 'upload success',
             originalFilename: filename,
-            servicePath: path.replace(__dirname, HOSTNAME)
+            servicePath: pathTransform(path.replace(uploadDir, HOSTNAME))
           });
         });
       } catch (err) {
@@ -94,7 +94,7 @@ const writeFile = function (res, path, file, filename, stream) {
         code: 0,
         codeText: 'upload success',
         originalFilename: filename,
-        servicePath: path.replace(__dirname, HOSTNAME)
+        servicePath: pathTransform(path.replace(uploadDir, HOSTNAME))
       });
     });
   });
@@ -145,23 +145,23 @@ app.post('/upload_single', async (req, res) => {
 });
 app.post('/upload_single_name', async (req, res) => {
   try {
-    let { fields, files } = await multipartyUpload(req);
+    let { fields, files } = await multipartyUpload(req); // 先上传到 Temp 目录
     let file = (files.file && files.file[0]) || {},
       filename = (fields.filename && fields.filename[0]) || '',
-      path = `${uploadDir}/${filename}`,
+      _path = path.join(uploadDir, filename),
       isExists = false;
     // 检测是否存在
-    isExists = await exists(path);
+    isExists = await exists(_path);
     if (isExists) {
       res.send({
         code: 0,
         codeText: 'file exists',
         originalFilename: filename,
-        servicePath: path.replace(__dirname, HOSTNAME)
+        servicePath: pathTransform(_path.replace(uploadDir, HOSTNAME))
       });
       return;
     }
-    writeFile(res, path, file, filename, true);
+    writeFile(res, _path, file, filename, true);
   } catch (err) {
     res.send({
       code: 1,
@@ -177,25 +177,25 @@ app.post('/upload_single_base64', async (req, res) => {
     spark = new SparkMD5.ArrayBuffer(),
     suffix = /\.([0-9a-zA-Z]+)$/.exec(filename)[1],
     isExists = false,
-    path;
+    _path;
   file = decodeURIComponent(file);
   file = file.replace(/^data:image\/\w+;base64,/, '');
   file = Buffer.from(file, 'base64');
   spark.append(file);
-  path = `${uploadDir}/${spark.end()}.${suffix}`;
+  _path = path.join(uploadDir, `${spark.end()}.${suffix}`);
   await delay();
-  // 检测是否存在
-  isExists = await exists(path);
+  // 检查是否已存在
+  isExists = await exists(_path);
   if (isExists) {
     res.send({
       code: 0,
       codeText: 'file exists',
       originalFilename: filename,
-      servicePath: path.replace(__dirname, HOSTNAME)
+      servicePath: pathTransform(_path.replace(uploadDir, HOSTNAME))
     });
     return;
   }
-  writeFile(res, path, file, filename, false);
+  writeFile(res, _path, file, filename, false);
 });
 
 // 大文件切片上传 & 合并切片
